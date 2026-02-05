@@ -1,6 +1,8 @@
 import { config } from 'dotenv';
 config();
 
+console.log('🚀 Task 1 complete - ready for Task 2');
+
 import { NotionClient } from './notion.js';
 import { AlgernonDispatcher } from './algernon.js';
 import { TelegramNotifier } from './telegram.js';
