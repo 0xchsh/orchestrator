@@ -1,39 +1,47 @@
 import { spawn } from 'child_process';
-
-export interface AlgernonTask {
-  project: string;
-  task: string;
-  repoUrl: string;
-  branch: string;
-}
+import { AlgernonTask } from './types.js';
 
 export class AlgernonDispatcher {
-  async dispatchTask(task: AlgernonTask): Promise<number> {
+  async dispatchTask(task: AlgernonTask): Promise<string> {
     return new Promise((resolve, reject) => {
-      const child = spawn('openclaw', [
+      const command = 'npx';
+      const args = [
+        'openclaw',
         'sessions_spawn',
         '--task',
         JSON.stringify(task),
         '--label',
-        `orchestrator-${Date.now()}`
-      ]);
+        `task-${task.taskId}`,
+        '--run-timeout-seconds',
+        '1800'
+      ];
 
-      let output = '';
-
-      child.stdout.on('data', (data) => {
-        output += data.toString();
+      const child = spawn(command, args, {
+        stdio: ['pipe', 'pipe', 'pipe']
       });
 
-      child.stderr.on('data', (data) => {
+      let output = '';
+      let errorOutput = '';
+
+      child.stderr?.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+
+      child.stdout?.on('data', (data) => {
         output += data.toString();
       });
 
       child.on('close', (code) => {
         if (code === 0) {
-          resolve(code);
+          const match = output.match(/completed successfully/);
+          resolve(output.trim());
         } else {
-          reject(new Error(`Algernon failed: ${output}`));
+          reject(new Error(`Algernon failed: ${errorOutput || output}`));
         }
+      });
+
+      child.on('error', (error) => {
+        reject(new Error(`Failed to spawn Algernon: ${error.message}`));
       });
 
       // 30 minute timeout
@@ -42,5 +50,18 @@ export class AlgernonDispatcher {
         reject(new Error('Algernon task timed out after 30 minutes'));
       }, 30 * 60 * 1000);
     });
+  }
+
+  async isAvailable(): Promise<boolean> {
+    try {
+      const child = spawn('which', ['openclaw']);
+      
+      return new Promise((resolve) => {
+        child.on('close', (code) => resolve(code === 0));
+        child.on('error', () => resolve(false));
+      });
+    } catch {
+      return false;
+    }
   }
 }

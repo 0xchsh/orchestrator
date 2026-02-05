@@ -1,22 +1,5 @@
 import { Client } from '@notionhq/client';
-
-export interface Project {
-  id: string;
-  name: string;
-  status: string;
-  repoUrl?: string;
-  description: string;
-}
-
-export interface Task {
-  id: string;
-  name: string;
-  status: string;
-  priority: string;
-  projectId: string;
-  prLink?: string;
-  notes: string;
-}
+import { Project, Task } from './types.js';
 
 export class NotionClient {
   private client: Client;
@@ -33,15 +16,21 @@ export class NotionClient {
       filter: {
         property: 'Status',
         select: { equals: 'Queued' }
-      }
+      },
+      sorts: [
+        {
+          property: 'Created',
+          direction: 'ascending'
+        }
+      ]
     });
 
     return response.results.map((page: any) => ({
       id: page.id,
-      name: page.properties.Name.title[0]?.text.content || '',
-      status: page.properties.Status.select.name,
+      name: page.properties.Name.title[0]?.plain_text || '',
+      status: page.properties.Status.select?.name || 'Queued',
       repoUrl: page.properties['Repo URL']?.url,
-      description: page.properties.Description.rich_text[0]?.text.content || ''
+      description: page.properties.Description.rich_text[0]?.plain_text || ''
     }));
   }
 
@@ -51,24 +40,31 @@ export class NotionClient {
       filter: {
         property: 'Status',
         status: { equals: 'Queued' }
-      }
+      },
+      sorts: [
+        {
+          property: 'Priority',
+          select: { order: 'descending' }
+        }
+      ]
     });
 
     return response.results.map((page: any) => ({
       id: page.id,
-      name: page.properties.Name.title[0]?.text.content || '',
-      status: page.properties.Status.status.name,
+      name: page.properties.Name.title[0]?.plain_text || '',
+      status: page.properties.Status.status?.name || 'Queued',
       priority: page.properties.Priority.select?.name || 'Medium',
       projectId: page.properties.Project.relation[0]?.id || '',
+      projectName: '', // Will be filled in later
       prLink: page.properties['PR Link']?.url,
-      notes: page.properties.Notes.rich_text[0]?.text.content || ''
+      notes: page.properties.Notes.rich_text[0]?.plain_text || ''
     }));
   }
 
-  async updateStatus(id: string, status: string, table: 'projects' | 'tasks'): Promise<void> {
+  async updateStatus(id: string, status: string, type: 'project' | 'task'): Promise<void> {
     let properties: any = {};
     
-    if (table === 'projects') {
+    if (type === 'project') {
       properties.Status = { select: { name: status } };
     } else {
       properties.Status = { status: { name: status } };

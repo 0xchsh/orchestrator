@@ -1,29 +1,49 @@
-import TelegramBot from 'node-telegram-bot-api';
+import fetch from 'node-fetch';
 
-export interface Notification {
-  type: 'start' | 'complete' | 'error' | 'clarification';
-  task: string;
-  url?: string;
-  error?: string;
+interface TelegramMessage {
+  chat_id: string;
+  text: string;
+  parse_mode?: 'Markdown' | 'HTML';
 }
 
 export class TelegramNotifier {
-  private bot: TelegramBot;
+  private token: string;
   private chatId: string;
+  private baseUrl = 'https://api.telegram.org/bot';
 
   constructor(token: string, chatId: string) {
-    this.bot = new TelegramBot(token);
+    this.token = token;
     this.chatId = chatId;
   }
 
-  async send(notification: Notification): Promise<void> {
+  async sendNotification(type: 'start' | 'complete' | 'error' | 'clarification', task: string, url?: string, error?: string): Promise<void> {
     const messages = {
-      start: `🚀 Starting: ${notification.task}`,
-      complete: `✅ PR ready: ${notification.url}`,
-      error: `❌ Failed: ${notification.task} — ${notification.error}`,
-      clarification: `❓ Need input on: ${notification.task}`
+      start: `🚀 Starting: ${task}`,
+      complete: `✅ PR ready: ${url}`,
+      error: `❌ Failed: ${task} — ${error}`,
+      clarification: `❓ Need input on: ${task}`
     };
 
-    await this.bot.sendMessage(this.chatId, messages[notification.type]);
+    await this.sendMessage(messages[type]);
+  }
+
+  private async sendMessage(text: string): Promise<void> {
+    const url = `${this.baseUrl}${this.token}/sendMessage`;
+    
+    const message: TelegramMessage = {
+      chat_id: this.chatId,
+      text,
+      parse_mode: 'Markdown'
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Telegram API error: ${response.status} ${response.statusText}`);
+    }
   }
 }
