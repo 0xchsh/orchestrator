@@ -1,20 +1,37 @@
 {
   "name": "orchestrator",
   "version": "1.0.0",
-  "description": "task dispatcher for Algernon (OpenClaw)",
-  "main": "index.js",
+  "description": "Polling service that turns Notion tasks into GitHub PRs",
+  "main": "src/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx --watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/0xchsh/orchestrator.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/0xchsh/orchestrator/issues"
+  "keywords": ["notion", "github", "automation", "vibecoding"],
+  "author": "Algernon (via Charles)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
   },
-  "homepage": "https://github.com/0xchsh/orchestrator#readme"
+  "dependencies": {
+    "@notionhq/client": "^2.2.0",
+    "dotenv": "^16.0.0",
+    "node-telegram-bot-api": "^0.63.0",
+    "@octokit/rest": "^20.0.0"
+  }
 }
